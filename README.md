@@ -16,28 +16,34 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:3000. The wall display is designed for a
-1920x1200 landscape tablet. On a laptop, go full-screen or zoom out.
+Open http://localhost:3000 and sign in with Google. The app talks to the
+Haagenson Family Supabase project. The connection details are publishable
+values in `src/lib/supabase.ts`; row-level security protects the data.
 
-The preview stores everything in your browser (localStorage) until Supabase is
-connected. The default parent PIN for both Andy and Jess is **1234**. Change it
-under Parents → Family.
+To try it offline on sample data instead (default parent PIN **1234**):
 
-## What works now (Phase 1 preview)
+```bash
+NEXT_PUBLIC_DATA_MODE=local npm run dev
+```
 
-- Wall home: clock, today's agenda (sample events), dinner, and the four kids
-  with stars and routine progress
-- Together view: all four kids' routines side by side, with true multi-touch
-  so all four can tap at once. Hold a picture to hear it read aloud.
-  Per-column confetti, plus "Everybody's ready!" when all four are done.
-- Single-kid view
-- Parent PIN unlock (5-minute session), approvals that award stars, family
-  photos (crop plus EXIF/GPS stripping), colors, PINs, and routine time windows
+## How access works
 
-## Not yet
+- **Parents** sign in with Google. Andy (andy.haagenson@gmail.com) is the owner.
+- **The wall tablet** is paired once with a 6-digit code from a parent's phone
+  (Family → Pair a wall display). It never sees budget data or PINs.
+- **Kids** never log in. They tap their own column or photo on the wall.
+- **Parent PINs** are hashed and checked on the server. Five wrong tries locks
+  the PIN pad for 10 minutes. A correct PIN unlocks parent actions on the wall
+  for 5 minutes.
 
-- Supabase (real sign-in, shared data across devices): Phase 1b
-- Chores, star shop, Greenlight balances: Phase 2
-- Google Calendar sync: Phase 3
-- Budget: Phase 4
-- Lists, PWA install, night mode: Phase 5
+Database changes live in `supabase/migrations`. The family's starting data is
+in `supabase/seed/haagenson_family.sql`.
+
+## Status
+
+- Phase 1 (done): wall home, the four-kid Together view, photo avatars, PIN
+- Phase 1b (done): Supabase, Google sign-in, wall pairing, realtime sync
+- Phase 2: chores, star shop, Greenlight balances
+- Phase 3: Google Calendar sync
+- Phase 4: budget
+- Phase 5: lists, PWA install, night mode
