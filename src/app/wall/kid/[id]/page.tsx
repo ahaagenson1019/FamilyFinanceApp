@@ -4,7 +4,7 @@ import Link from "next/link";
 import { use } from "react";
 import { Avatar } from "@/components/Avatar";
 import { StepTile } from "@/components/StepTile";
-import { routineProgress, starBalance, taskFor, toggleStep, useFamily } from "@/lib/store";
+import { routineAwarded, routineProgress, starBalance, taskFor, toggleStep, useFamily } from "@/lib/store";
 import { WINDOW_LABELS, currentOrNextWindow, todayKey } from "@/lib/time";
 
 export default function KidPage({ params }: { params: Promise<{ id: string }> }) {
@@ -57,6 +57,13 @@ export default function KidPage({ params }: { params: Promise<{ id: string }> })
               />
             ))}
           </div>
+          {p.complete && (
+            <div className="animate-rise mt-4 rounded-2xl px-5 py-4 text-center text-xl font-bold text-white" style={{ background: kid.color }}>
+              {routineAwarded(family, routine, date)
+                ? `★ +${routine.starReward} stars earned!`
+                : `All done! +${routine.starReward} ★ when a grown-up checks`}
+            </div>
+          )}
         </section>
       )}
     </div>
