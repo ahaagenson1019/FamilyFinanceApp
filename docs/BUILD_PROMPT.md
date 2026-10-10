@@ -44,9 +44,30 @@ allowance, plus a simple household budget. Build it in this repo.
 - **Tamper-proof kiosk.** No settings, delete, or edit controls are
   reachable from kid mode without a parent PIN. Large targets (min 64px in
   kid mode). Nothing a 3-year-old can break by mashing the screen.
+- **Photo avatars for everyone.** Each kid and parent has a real photo as
+  their avatar, which matters most for pre-readers ("that's me!"). See
+  "Profile photos" below.
 - **Age-appropriate seed chores:** make bed, put toys away, feed pet,
   set/clear table, laundry to hamper, water plants, and help unload the
   dishwasher (for the 6- and 7-year-olds).
+
+## Profile photos
+- Every family member (kids and parents) can have a photo avatar.
+- Upload from the camera roll, or take one live with the tablet/phone camera.
+- A crop step (square, with a circle preview) before saving. Resize on the
+  client to 512x512 WebP before upload.
+- **Strip EXIF metadata (including GPS location) before upload.** These are
+  photos of young kids.
+- Stored in a **private** Supabase Storage bucket, scoped to the family by
+  RLS, and served with short-lived signed URLs. Never use public URLs.
+- Only parents can add or change photos (behind the parent PIN). Kids can't
+  change their own or anyone else's.
+- The photo is shown with a ring in that person's color everywhere it
+  appears (login screen, chores, calendar events, ledger).
+- Fallback when there's no photo: the person's initial on their color, or a
+  picked emoji/animal.
+- Cache avatars on the wall display so the login screen loads instantly and
+  still works offline.
 
 ## Core modules
 
@@ -97,7 +118,8 @@ allowance, plus a simple household budget. Build it in this repo.
 2. Propose the data model (tables, relationships, RLS) and the screen list.
    Wait for approval.
 3. Build in phases, commit and push after each one, and give a preview URL:
-   - Phase 1: Auth, family profiles, avatar/PIN login, wall-display shell
+   - Phase 1: Auth, family profiles with photo avatars, avatar/PIN login,
+     wall-display shell
    - Phase 2: Routines + chores + rewards ledger (ship first)
    - Phase 3: Calendar + Google sync
    - Phase 4: Budget
