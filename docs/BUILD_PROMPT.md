@@ -1,13 +1,14 @@
-# Family HQ — Build Prompt
+# Haagie Headquarters — Build Prompt
 
-You're building "Family HQ": a family command center that combines a
+You're building "Haagie Headquarters": a family command center that combines a
 Skylight-style shared calendar/display with Greenlight-style chores and
 allowance, plus a simple household budget. Build it in this repo.
 
 ## Who uses it
-- Parents (2): full admin. Manage budget, approve chores, set rewards.
-- Kids, ages 7, 6, 5, and 3. Three of the four are pre-readers or early
-  readers, which drives most of the kid-facing design (see "Designing for
+- Parents have full admin: manage the budget, approve chores, set rewards.
+- Parents (2): Andy and Jess.
+- Kids: Foster (7), Ira (6), Rita (5), Enid (3). Three of the four are
+  pre-readers or early readers, which drives most of the kid-facing design (see "Designing for
   ages 3–7" below).
 - The wall display: a tablet mounted in the kitchen running in kiosk mode.
 
@@ -68,7 +69,29 @@ allowance, plus a simple household budget. Build it in this repo.
 ## Core modules
 
 ### 1. Calendar
-- Two-way sync with our Google Calendars. Each family member has a color.
+Calendars to sync (across four Google accounts):
+| Calendar | Owner | Access |
+|---|---|---|
+| Haagenson Family Calendar | shared | two-way (default for new events) |
+| Andy's personal calendar | Andy | two-way |
+| andy@mplsgymnastics.com | Andy (work, Google Workspace) | read-only |
+| jess@mplsgymnastics.com | Jess (work, Google Workspace) | read-only |
+| Jessica.haagenson@gmail.com | Jess | two-way |
+
+- Each parent connects their own Google accounts through a "Connect Google
+  account" flow (multiple accounts per parent). Refresh tokens are stored
+  server-side only (Supabase Vault), never sent to the client.
+- Work calendars are read-only so nobody adds "snack time" to the gym
+  calendar from the kitchen wall.
+- Events added from the wall go to the Haagenson Family Calendar by default.
+- Kid tagging: if an event title contains a kid's name ("Foster soccer"),
+  show that kid's avatar on it automatically. Parents can override the tag.
+- Gotcha: the Google OAuth app must be set to **"In production"** (it can
+  stay unverified for under 100 users). In "Testing" mode, Google expires
+  refresh tokens after 7 days and sync silently dies.
+- Gotcha: mplsgymnastics.com is a Google Workspace domain, so the admin may
+  need to allow the OAuth app in the Admin console before work calendars
+  can connect.
 - Views: Day, Week, Month, plus a "Today" agenda for the wall display
 - Kid events (school, practice, playdates) show the kid's avatar
 - Recurring events, and quick-add from the tablet
@@ -121,12 +144,18 @@ allowance, plus a simple household budget. Build it in this repo.
 - Kid mode is playful and bright. Parent mode is clean.
 - Auto dim at night.
 
+## Wall display hardware
+- Target device: Samsung Galaxy Tab A9+ (11", Android), landscape, running
+  Fully Kiosk Browser pointed at the PWA. Design the wall layout for
+  1920x1200 landscape first.
+- Until the tablet arrives, test in a desktop browser at that size.
+
 ## Non-negotiables
 - RLS on every table. Kids can never read budget data or another kid's
   ledger, enforced in the database.
 - Money stored as integer cents
 - Timezone: America/Chicago
-- Seed script with realistic sample data for a family with kids 7, 6, 5, 3
+- Seed script with realistic sample data for Foster, Ira, Rita and Enid
 
 ## How to work
 1. Ask any remaining clarifying questions first.
