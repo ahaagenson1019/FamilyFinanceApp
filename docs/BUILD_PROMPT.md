@@ -6,11 +6,19 @@ allowance, plus a simple household budget. Build it in this repo.
 
 ## Who uses it
 - Parents have full admin: manage the budget, approve chores, set rewards.
-- Parents (2): Andy and Jess.
+- Parents (2): Andy and Jess. **Andy is the owner/primary admin, signing
+  in as `andy.haagenson@gmail.com`.** This is a personal family tool:
+  business accounts (mplsgymnastics.com) are calendar sources only and
+  never admins.
 - Kids: Foster (7), Ira (6), Rita (5), Enid (3). Three of the four are
   pre-readers or early readers, which drives most of the kid-facing design (see "Designing for
   ages 3–7" below).
 - The wall display: a tablet mounted in the kitchen running in kiosk mode.
+
+## Accounts & hosting (personal, separate from the gym)
+- GitHub: ahaagenson1019/FamilyFinanceApp
+- Vercel: personal Hobby team ("andy-6052's projects"), not the Mpls Gym team
+- Supabase: a separate personal organization, not "Mpls Gymnastics ORG"
 
 ## Stack (don't deviate without asking)
 - Next.js (App Router) + TypeScript + Tailwind + shadcn/ui
@@ -100,6 +108,9 @@ Calendars to sync (across four Google accounts):
 ### 2. Chores, Routines & Stars
 - Chores: assignee, recurrence, star value, needs-approval flag, optional
   photo proof
+- **Together view:** a wall screen with all four kids' routines in 4
+  side-by-side columns, all tappable at the same time (true multi-touch).
+  See docs/DATA_MODEL.md for the full spec.
 - Routines: ordered steps with icons, a time window (morning/bedtime), and
   an optional star reward when the whole routine is done
 - Star ledger per kid, append-only. Every earn or spend is a row. Never
@@ -164,7 +175,7 @@ Calendars to sync (across four Google accounts):
 3. Build in phases, commit and push after each one, and give a preview URL:
    - Phase 1: Auth, family profiles with photo avatars, avatar/PIN login,
      wall-display shell
-   - Phase 2: Routines + chores + star ledger + reward shop + Greenlight
+   - Phase 2: Routines (incl. Together view) + chores + star ledger + reward shop + Greenlight
      balance cards (ship first)
    - Phase 3: Calendar + Google sync
    - Phase 4: Budget

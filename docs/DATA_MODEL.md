@@ -1,4 +1,4 @@
-# Haagie Headquarters — Data Model & Screens (proposal, awaiting approval)
+# Haagie Headquarters — Data Model & Screens (approved)
 
 All tables live in Supabase Postgres with RLS on. Money is stored as integer cents,
 times as `timestamptz`, and the family timezone is America/Chicago.
@@ -7,18 +7,28 @@ times as `timestamptz`, and the family timezone is America/Chicago.
 
 | Actor | How they sign in | What they can do |
 |---|---|---|
-| Parent (Andy, Jess) | Supabase Auth (Google sign-in) on their phone | Everything |
+| Owner (Andy, `andy.haagenson@gmail.com`) | Supabase Auth (Google sign-in, personal account) | Everything, plus inviting/removing members, pairing devices, and transferring ownership |
+| Parent (Jess) | Supabase Auth (Google sign-in) on her phone | Everything except owner-only actions |
 | Wall tablet | A **device account**: a Supabase user with role `kiosk`, paired once by a parent | Read the family's calendar, chores, stars and lists. Mark tasks done (as pending). Request rewards. |
-| Kid (Foster, Ira, Rita, Enid) | No login. Taps their avatar on the tablet, which sets the "acting member" | Whatever the kiosk allows, for themselves |
+| Kid (Foster, Ira, Rita, Enid) | No login. Either taps their avatar (single-kid view) or uses their own column in the Together view | Whatever the kiosk allows, for themselves |
 | Parent on the tablet | Taps their avatar and enters a 4-digit PIN. A server function verifies the PIN and grants a 5-minute elevated session | Approvals, settings, Greenlight entry |
 
 Kids never have their own auth users, so a 3-year-old can't end up with a password.
 
+**Personal, not business.** The owner identity is `andy.haagenson@gmail.com`.
+`andy@mplsgymnastics.com` is connected only as a read-only calendar source and
+has no admin rights in the app.
+
+Kiosk RPCs take an explicit `member_id` on every call, rather than relying on
+a single "acting member" session. That's what makes the four-kid Together view
+work: four kids can tap at once without interfering with each other.
+
 ## Tables
 
 ### Family & people
-- **families**: `id, name ('Haagie Headquarters'), timezone`
-- **members**: `id, family_id, role (parent|kid), display_name, birthdate, color, avatar_path, avatar_emoji, auth_user_id (parents only), pin_hash (parents only)`
+- **families**: `id, name ('Haagie Headquarters'), timezone, owner_member_id`
+- **family_settings**: `family_id, together_view_windows (jsonb, e.g. morning 6:45–8:15, bedtime 19:00–20:15), auto_switch_to_together (bool)`
+- **members**: `id, family_id, role (owner|parent|kid), display_name, birthdate, color, avatar_path, avatar_emoji, auth_user_id (parents only), pin_hash (parents only)`
 - **devices**: `id, family_id, name ('Kitchen wall'), auth_user_id, paired_by, last_seen_at`
 
 ### Calendar
@@ -82,11 +92,41 @@ Elevated parent actions on the tablet go through `security definer` RPCs that ch
 ### Wall tablet (1920x1200 landscape)
 1. **Home**: today's agenda on the left, four kid columns on the right (avatar, today's chores/routines, star count), dinner, and the time
 2. **Kid view** (after tapping an avatar): big picture checklist with read-aloud, star chart, goal, and "My Money" Greenlight jars
-3. **Calendar**: day, week (with meal row), month
-4. **Star shop**: rewards with pictures, plus a "request" button
-5. **Lists**: grocery and to-do
-6. **Parent PIN pad**, which unlocks approvals and quick settings
-7. **Night mode**: dimmed clock plus tomorrow's first event
+3. **Together view (routines)**: four side-by-side columns (Foster, Ira,
+   Rita, Enid), each showing that kid's current routine. All four can be
+   tapped at the same time. Details below.
+4. **Calendar**: day, week (with meal row), month
+5. **Star shop**: rewards with pictures, plus a "request" button
+6. **Lists**: grocery and to-do
+7. **Parent PIN pad**, which unlocks approvals and quick settings
+8. **Night mode**: dimmed clock plus tomorrow's first event
+
+### Together view: spec
+- **Layout:** 4 equal columns (~480px each at 1920 wide). Each column has the
+  kid's photo avatar and color header, then the routine steps as big
+  picture tiles, then a progress bar and star count at the bottom.
+- **True multi-touch:** each tile handles its own `pointerdown`/`pointerup`
+  (no global click handlers, no modals, no shared "selected kid" state).
+  `touch-action: manipulation` disables double-tap zoom. Four kids tapping at
+  once must all register. The Galaxy Tab A9+ supports 10-point touch.
+- **Optimistic UI:** a tile flips to checked instantly, then syncs in the
+  background. A failed sync shows a small retry badge and never blocks the
+  column.
+- **Undo:** tapping a checked tile un-checks it, but only while it's still
+  `pending`.
+- **Celebrations stay in their column.** When Rita finishes, confetti plays
+  in Rita's column only and doesn't cover Foster's.
+- **Read-aloud:** four voices at once would be chaos. Speech plays on
+  long-press only, and is queued so only one speaks at a time.
+- **Which routine shows:** picked automatically by time window (morning,
+  after school, bedtime). A parent can override it with the PIN.
+- **Auto-switch:** during a routine window, the wall home screen switches to
+  the Together view by itself and switches back when the window ends
+  (configurable).
+- **Sibling mis-taps:** Enid tapping Foster's column is caught by parent
+  approval. Nothing is final until a parent approves.
+- **Done state:** when all four columns are complete, a full-width
+  "Everybody's ready!" celebration plays.
 
 ### Parent phone
 1. **Dashboard**: pending approvals, today's events, star leaderboard, month budget snapshot
@@ -96,7 +136,7 @@ Elevated parent actions on the tablet go through `security definer` RPCs that ch
 5. **Greenlight update**: all four kids on one screen, 30 seconds a week
 6. **Budget**: overview, transactions, CSV import, categories, bills
 7. **Calendar settings**: connected Google accounts and per-calendar access
-8. **Family**: members, photos, colors, PINs, wall tablet pairing
+8. **Family**: members, photos, colors, PINs, wall tablet pairing, Together view windows
 9. **Lists**
 
 ## Default colors (editable)
