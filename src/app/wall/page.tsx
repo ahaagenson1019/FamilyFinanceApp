@@ -25,8 +25,16 @@ export default function WallHome() {
         <section className="flex flex-col rounded-[28px] bg-card p-5 shadow-soft lg:min-h-0 lg:flex-1">
           <div className="mb-3 flex items-baseline justify-between">
             <h2 className="font-display text-2xl font-semibold">Today</h2>
-            <span className="text-xs font-bold uppercase tracking-wider text-ink-soft">Sample events</span>
+            {family.eventsToday.length > 0 && family.viewer?.kind === "local" && (
+              <span className="text-xs font-bold uppercase tracking-wider text-ink-soft">Sample events</span>
+            )}
           </div>
+          {family.eventsToday.length === 0 && (
+            <div className="flex flex-1 flex-col items-center justify-center gap-2 py-8 text-center text-ink-soft">
+              <span className="text-5xl">📅</span>
+              <p className="font-bold">Your Google Calendars show up here once calendar sync is on (Phase 3).</p>
+            </div>
+          )}
           <ul className="flex flex-col gap-2 lg:min-h-0 lg:overflow-y-auto">
             {family.eventsToday.map((e) => {
               const past = e.end ? toMins(e.end) <= nowMins : toMins(e.start) < nowMins - 60;
@@ -50,13 +58,13 @@ export default function WallHome() {
           </ul>
         </section>
 
-        <section className="flex items-center gap-4 rounded-[28px] bg-card px-5 py-4 shadow-soft">
+        {family.dinnerToday && <section className="flex items-center gap-4 rounded-[28px] bg-card px-5 py-4 shadow-soft">
           <span className="text-4xl">🍽️</span>
           <div>
             <p className="text-xs font-bold uppercase tracking-wider text-ink-soft">Dinner tonight</p>
             <p className="font-display text-2xl font-semibold">{family.dinnerToday}</p>
           </div>
-        </section>
+        </section>}
       </div>
 
       {/* Right: kids */}

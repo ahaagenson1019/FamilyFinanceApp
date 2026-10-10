@@ -5,19 +5,24 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useState } from "react";
 import { Avatar } from "@/components/Avatar";
 import { AvatarEditor } from "@/components/AvatarEditor";
+import { Gate } from "@/components/Gate";
 import { useParentSession } from "@/components/ParentSession";
 import {
   approveTasks,
+  createPairingCode,
   kids,
   parents,
   pendingTasks,
   rejectTasks,
   resetPreviewData,
-  updateMember,
+  setMemberColor,
+  setMemberPhoto,
+  setPin,
+  signOut,
   updateSettings,
   useFamily,
 } from "@/lib/store";
-import { sha256Hex } from "@/lib/image";
+import { DATA_MODE } from "@/lib/supabase";
 import { WINDOW_LABELS, WINDOW_ORDER } from "@/lib/time";
 import type { Member } from "@/lib/types";
 
@@ -26,7 +31,9 @@ type Tab = "approvals" | "family" | "settings";
 export default function ParentPage() {
   return (
     <Suspense>
-      <ParentArea />
+      <Gate next="/parent">
+        <ParentArea />
+      </Gate>
     </Suspense>
   );
 }
@@ -66,6 +73,7 @@ function ParentArea() {
   }
 
   const pending = pendingTasks(family);
+  const signedIn = family.viewer?.kind === "parent";
 
   return (
     <div className="mx-auto min-h-dvh max-w-3xl p-4 md:p-8">
@@ -77,16 +85,29 @@ function ParentArea() {
           </p>
           <h1 className="font-display text-3xl font-semibold">Hi {me.displayName}</h1>
         </div>
-        <button
-          onClick={() => {
-            lock();
-            router.push(back);
-          }}
-          className="rounded-full bg-card px-4 py-2 font-bold shadow-soft"
-        >
-          Lock & exit
-        </button>
+        {signedIn ? (
+          <div className="flex gap-2">
+            <Link href="/wall" className="rounded-full bg-card px-4 py-2 font-bold shadow-soft">
+              Wall view
+            </Link>
+            <button onClick={() => signOut()} className="rounded-full px-3 py-2 font-bold text-ink-soft">
+              Sign out
+            </button>
+          </div>
+        ) : (
+          <button
+            onClick={() => {
+              lock();
+              router.push(back);
+            }}
+            className="rounded-full bg-card px-4 py-2 font-bold shadow-soft"
+          >
+            Lock & exit
+          </button>
+        )}
       </header>
+
+      {DATA_MODE === "supabase" && !me.hasPin && <SetPinBanner member={me} />}
 
       <nav className="mb-6 flex gap-1 rounded-full bg-card p-1 shadow-soft">
         {(["approvals", "family", "settings"] as Tab[]).map((t) => (
@@ -193,7 +214,7 @@ function Family() {
               {COLORS.map((c) => (
                 <button
                   key={c}
-                  onClick={() => updateMember(m.id, { color: c })}
+                  onClick={() => setMemberColor(m.id, c)}
                   className="h-7 w-7 rounded-full"
                   style={{ background: c, boxShadow: m.color === c ? `0 0 0 2px var(--card), 0 0 0 4px ${c}` : undefined }}
                   aria-label={`Color ${c}`}
@@ -203,7 +224,7 @@ function Family() {
           </div>
           {m.role !== "kid" && (
             <button onClick={() => setPinFor(m)} className="rounded-full bg-bg px-4 py-2 text-sm font-bold">
-              Change PIN
+              {m.hasPin || m.pinHash ? "Change PIN" : "Set PIN"}
             </button>
           )}
         </section>
@@ -213,18 +234,62 @@ function Family() {
           member={editing}
           onClose={() => setEditing(null)}
           onSave={(url) => {
-            updateMember(editing.id, { avatarUrl: url || undefined });
+            void setMemberPhoto(editing.id, url);
             setEditing(null);
           }}
         />
       )}
       {pinFor && <ChangePin member={pinFor} onClose={() => setPinFor(null)} />}
+      {family.viewer?.kind === "parent" && <PairWall />}
+    </div>
+  );
+}
+
+function PairWall() {
+  const [code, setCode] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  return (
+    <section className="mt-3 rounded-[28px] bg-card p-5 shadow-soft">
+      <h2 className="font-display text-2xl font-semibold">📺 Pair a wall display</h2>
+      <p className="mt-1 text-sm text-ink-soft">
+        On the tablet, open Haagie Headquarters and tap &ldquo;Set up this screen as the wall display,&rdquo; then enter this code. It works once and
+        expires in 10 minutes.
+      </p>
+      {code ? (
+        <p className="mt-4 text-center font-display text-5xl font-semibold tracking-[0.3em]">{code}</p>
+      ) : (
+        <button
+          onClick={() => createPairingCode().then(setCode, (e: Error) => setError(e.message))}
+          className="mt-4 rounded-full bg-ink px-5 py-2.5 font-bold text-white"
+        >
+          Get a code
+        </button>
+      )}
+      {error && <p className="mt-3 text-sm font-bold text-red-700">{error}</p>}
+    </section>
+  );
+}
+
+function SetPinBanner({ member }: { member: Member }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="mb-6 flex flex-wrap items-center gap-3 rounded-[28px] bg-accent px-5 py-4 text-white shadow-soft">
+      <span className="text-3xl">🔢</span>
+      <div className="flex-1">
+        <p className="font-bold">Set your wall PIN</p>
+        <p className="text-sm opacity-90">You&apos;ll use it on the kitchen tablet to approve routines and change settings.</p>
+      </div>
+      <button onClick={() => setOpen(true)} className="rounded-full bg-white px-4 py-2 font-bold text-accent">
+        Set PIN
+      </button>
+      {open && <ChangePin member={member} onClose={() => setOpen(false)} />}
     </div>
   );
 }
 
 function ChangePin({ member, onClose }: { member: Member; onClose: () => void }) {
-  const [pin, setPin] = useState("");
+  const [pin, setPinValue] = useState("");
+  const [error, setError] = useState<string | null>(null);
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-ink/40 p-4" onClick={onClose}>
       <form
@@ -232,8 +297,12 @@ function ChangePin({ member, onClose }: { member: Member; onClose: () => void })
         onClick={(e) => e.stopPropagation()}
         onSubmit={async (e) => {
           e.preventDefault();
-          updateMember(member.id, { pinHash: await sha256Hex(pin) });
-          onClose();
+          try {
+            await setPin(member.id, pin);
+            onClose();
+          } catch (err) {
+            setError((err as Error).message);
+          }
         }}
       >
         <h2 className="font-display text-xl font-semibold">New PIN for {member.displayName}</h2>
@@ -243,9 +312,10 @@ function ChangePin({ member, onClose }: { member: Member; onClose: () => void })
           pattern="\d{4}"
           maxLength={4}
           value={pin}
-          onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))}
+          onChange={(e) => setPinValue(e.target.value.replace(/\D/g, ""))}
           className="mt-4 w-full rounded-2xl border-2 border-line bg-bg px-4 py-3 text-center font-display text-3xl tracking-[0.5em]"
         />
+        {error && <p className="mt-3 text-sm font-bold text-red-700">{error}</p>}
         <button disabled={pin.length !== 4} className="mt-4 w-full rounded-2xl bg-ink py-3 font-bold text-white disabled:opacity-40">
           Save
         </button>
@@ -288,7 +358,7 @@ function Settings() {
           Switch the wall to routines automatically when a window starts
         </label>
       </section>
-      <section className="rounded-[28px] bg-card p-5 shadow-soft">
+      {DATA_MODE === "local" && <section className="rounded-[28px] bg-card p-5 shadow-soft">
         <h2 className="font-display text-2xl font-semibold">Preview data</h2>
         <p className="mb-4 text-sm text-ink-soft">
           Everything is saved in this browser until Supabase is connected. Default PIN for both parents is 1234.
@@ -299,7 +369,7 @@ function Settings() {
         >
           Reset preview data
         </button>
-      </section>
+      </section>}
     </div>
   );
 }

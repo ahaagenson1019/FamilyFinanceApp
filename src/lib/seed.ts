@@ -73,6 +73,8 @@ function routinesFor(memberId: string, little: boolean): Routine[] {
 export function createSeed(): FamilyState {
   return {
     version: 1,
+    status: "ready",
+    viewer: { kind: "local" },
     familyName: "Haagie Headquarters",
     ownerMemberId: "andy",
     members: [

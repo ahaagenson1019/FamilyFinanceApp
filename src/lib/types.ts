@@ -12,8 +12,10 @@ export interface Member {
   /** Data URL (local preview) or storage path (Supabase). */
   avatarUrl?: string;
   avatarEmoji?: string;
-  /** SHA-256 hex of the parent PIN. Parents only. */
+  /** SHA-256 hex of the parent PIN (local preview only; Supabase keeps PINs server-side). */
   pinHash?: string;
+  hasPin?: boolean;
+  avatarPath?: string;
   email?: string;
 }
 
@@ -39,6 +41,8 @@ export type TaskStatus = "todo" | "pending" | "approved" | "rejected";
 export interface TaskInstance {
   /** `${dueDate}:${memberId}:${stepId}` */
   id: string;
+  /** Database id (Supabase mode). */
+  dbId?: string;
   memberId: string;
   routineId: string;
   stepId: string;
@@ -80,8 +84,19 @@ export interface CalendarEvent {
   memberIds: string[];
 }
 
+export type Viewer =
+  | { kind: "local" }
+  | { kind: "parent"; memberId: string; email: string }
+  | { kind: "device"; deviceId: string; name: string };
+
+export type LoadStatus = "loading" | "signed_out" | "unpaired" | "not_member" | "ready" | "error";
+
 export interface FamilyState {
   version: number;
+  status: LoadStatus;
+  viewer: Viewer | null;
+  familyId?: string;
+  error?: string;
   familyName: string;
   ownerMemberId: string;
   members: Member[];

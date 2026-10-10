@@ -64,9 +64,15 @@ export function WallShell({ children }: { children: React.ReactNode }) {
           );
         })}
         <div className="hidden flex-1 md:block" />
-        {mounted && (
+        {mounted && family.viewer?.kind === "parent" && unlockedParent && (
+          <Link href="/parent" className="flex w-16 flex-col items-center gap-1 rounded-2xl py-2 text-[11px] font-bold text-ink-soft md:w-20 md:text-xs">
+            <Avatar member={unlockedParent} size={40} />
+            Dashboard
+          </Link>
+        )}
+        {mounted && family.viewer?.kind !== "parent" && (
           <button
-            onClick={() => (unlockedParent ? lock() : requireParent((id) => router.push(`/parent?from=${encodeURIComponent(pathname)}&as=${id}`)))}
+            onClick={() => (unlockedParent ? lock() : requireParent(() => router.push(`/parent?from=${encodeURIComponent(pathname)}`)))}
             className="flex w-16 flex-col items-center gap-1 rounded-2xl py-2 text-[11px] font-bold text-ink-soft md:w-20 md:text-xs"
           >
             {unlockedParent ? (
