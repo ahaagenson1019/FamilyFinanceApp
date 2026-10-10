@@ -28,13 +28,9 @@ allowance, plus a simple household budget. Build it in this repo.
   bedtime routines as visual step-by-step checklists ("brush teeth → get
   dressed → shoes on"). These are separate from earning chores and can
   optionally award stars.
-- **Per-kid reward mode:**
-  - Stars mode (default for the 3- and 5-year-olds): earn stars and fill a
-    star chart toward a picture reward ("10 stars = pick the movie").
-  - Money mode (default for the 7-year-old, optional for the 6-year-old):
-    dollars split into visual Spend / Save / Give jars that fill up.
-  - A parent can switch a kid from stars to money with one toggle as the
-    kid grows. History is preserved.
+- **Stars for everyone.** All four kids earn stars and fill a star chart
+  toward picture rewards ("10 stars = pick the movie", "30 stars = trip to
+  the trampoline park"). There's no money in the chore system for now.
 - **Parent approval on by default.** Little kids will tap everything as
   done. Completed items go to "pending" until a parent batch-approves with
   their PIN.
@@ -78,17 +74,36 @@ allowance, plus a simple household budget. Build it in this repo.
 - Recurring events, and quick-add from the tablet
 - Meal plan row on the week view (dinner each night)
 
-### 2. Chores, Routines & Rewards (the Greenlight part)
-- Chores: assignee, recurrence, star or cent value, needs-approval flag,
-  optional photo proof
+### 2. Chores, Routines & Stars
+- Chores: assignee, recurrence, star value, needs-approval flag, optional
+  photo proof
 - Routines: ordered steps with icons, a time window (morning/bedtime), and
   an optional star reward when the whole routine is done
-- Ledger per kid, append-only. Every transaction is a row. Never just
-  update a balance field. Supports both stars and cents.
-- Savings goals with a picture of the item and a progress bar
-- Weekly auto-allowance (money-mode kids) with a parent-set
-  Spend/Save/Give split
-- "Payout" button: parent marks money or rewards as given in real life
+- Star ledger per kid, append-only. Every earn or spend is a row. Never
+  just update a balance field.
+- Reward shop: parent-defined rewards with a picture and a star price. A kid
+  "buys" a reward, and a parent confirms it with their PIN.
+- Star goals with a picture and a progress bar
+- Design the ledger so a money unit can be added later without a migration
+  rewrite. Don't build money in v1.
+
+### 2b. Greenlight Balances (view only)
+- Each kid has a "My Money" card showing their Greenlight balances (Spend,
+  Save, Give, plus total), styled like jars that fill up, with a "last
+  updated" date.
+- Greenlight has no public API, so **parents update balances by hand**: one
+  quick screen with all four kids and a field per jar, done in about 30
+  seconds a week. Do **not** scrape Greenlight or store Greenlight login
+  credentials.
+- Balance history stored as snapshots so kids can see a simple "my savings
+  went up" line over time.
+- Optional savings goal per kid tied to their Greenlight Save balance
+  ("Bike: $45 of $120").
+- A Sunday reminder on the parent's phone: "Update Greenlight balances."
+- A kid sees only their own balances. Parents see all of them. Enforce
+  this with RLS.
+- Keep the data model source-agnostic (`source = 'manual'`) so an automated
+  feed can replace manual entry later if one becomes available.
 
 ### 3. Household Budget (parents only)
 - Monthly budget by category with planned vs. actual
@@ -120,7 +135,8 @@ allowance, plus a simple household budget. Build it in this repo.
 3. Build in phases, commit and push after each one, and give a preview URL:
    - Phase 1: Auth, family profiles with photo avatars, avatar/PIN login,
      wall-display shell
-   - Phase 2: Routines + chores + rewards ledger (ship first)
+   - Phase 2: Routines + chores + star ledger + reward shop + Greenlight
+     balance cards (ship first)
    - Phase 3: Calendar + Google sync
    - Phase 4: Budget
    - Phase 5: Lists, polish, PWA install, kiosk mode
